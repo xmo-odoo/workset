@@ -1,4 +1,5 @@
 import pathlib
+import re
 import sys
 from dataclasses import dataclass
 from typing import List, Optional
@@ -18,6 +19,11 @@ class CreateRequest:
     message: Optional[str]
     suppress: bool
 
+
+MINPY_PATTERN = re.compile(
+    r"^MIN_PY_VERSION\s*=\s*\((\d+(?:,\s*\d+)*)\)$",
+    flags=re.MULTILINE | re.ASCII
+)
 
 def create(r: CreateRequest) -> None:
     if "upgrade" in r.repos and not r.source.endswith("/master"):
@@ -54,8 +60,22 @@ def create(r: CreateRequest) -> None:
     if r.message:
         (r.dest / "README.txt").write_text(r.message.rstrip() + "\n")
 
-    # FIXME: retrieve from odoo minver
-    (r.dest / ".python-version").write_text("3.12")
+    # TODO: ideally this would be dynamic and resolved by the build backend, however
+    #       setuptools requires `requires-python` to be resolved early, either
+    #       statically or via tool.setuptools.dynamic."requires-python", and Odoo
+    #       does not provide MIN_PY/MAX_PY in version spec format
+    for candidate in (
+        "release.py",  # after 18.2
+        "__init__.py",  # before 18.2
+    ):
+        p = r.dest.joinpath("odoo/odoo", candidate)
+        if p.is_file() and (m := MINPY_PATTERN.search(p.read_text())):
+            pyver = ".".join(re.split(r",\s*", m[1]))
+            break
+    else:
+        print("No MIN_PY_VERSION found, defaulting to 3.12")
+        pyver = "3.12"
+    (r.dest / ".python-version").write_text(pyver)
 
     dev = ["pytest", "pytest-timeout", "pytest-sugar", "pytest-xdist"]
     if "runbot" in r.repos:
@@ -74,9 +94,8 @@ build-backend = "odoo_deps_backend"
 
 [project]
 name = "odoo"
-version = "0.1.0"  # FIXME: make dynamic and fetch from odoo? Not sure that's useful.
-requires-python = ">= 3.12"  # FIXME: retrieve from odoo minver
-dynamic = ["dependencies"]
+requires-python = ">= {pyver}"
+dynamic = ["dependencies", "version"]
 
 [dependency-groups]
 dev = {dev!r}
