@@ -1,0 +1,4 @@
+.idea
+uv.lock
+build
+*.egg-info

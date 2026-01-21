@@ -1,0 +1,10 @@
+[project]
+name = "workset"
+version = "0.2.0dev1"
+description = """script creating a workset for odoo aka a checkout \
+of the relevant versions of each selected repository"""
+requires-python = ">= 3.11"  # toml support
+dependencies = []
+
+[project.scripts]
+workset = "workset.__main__:main"
