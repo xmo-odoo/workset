@@ -44,7 +44,7 @@ def checkout(
         assert root, (
             f"without URL, repository {name!r} needs a root repository directory"
         )
-        origin = Path(root).expanduser().resolve().joinpath(name).with_suffix(".git")
+        origin = get_origin(root, name)
         if source.endswith("/" + target):
             run(
                 ["git", "--git-dir", origin, "worktree", "add", dest, source],
@@ -66,3 +66,7 @@ def checkout(
                 ],
                 check=True,
             )
+
+
+def get_origin(root: str, name: str) -> Path:
+    return Path(root).expanduser().resolve().joinpath(name).with_suffix(".git")
