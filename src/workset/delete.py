@@ -3,7 +3,7 @@ import shutil
 import sys
 from dataclasses import dataclass
 from typing import TypedDict
-from subprocess import run, DEVNULL
+from subprocess import run, DEVNULL, PIPE
 
 from . import utils
 from .config import Config
@@ -52,7 +52,7 @@ def delete(r: DeleteRequest) -> None:
                 capture_output=True,
                 text=True,
                 check=True,
-            ).stdout
+            ).stdout.strip()
         )
 
         if not r.force:
@@ -95,11 +95,18 @@ def delete(r: DeleteRequest) -> None:
         [b] = branches
         answer = input(f"deleting branch {b} in {len(worktrees)} repository/ies [yN]: ")
         if answer == "y":
-            for w in worktrees.values():
-                run(
+            for n, w in worktrees.items():
+                pid = run(
                     ["git", "-C", w["repo"], "branch", "-D", b],
-                    check=True,
+                    check=False,
                     stdout=DEVNULL,
+                    stderr=PIPE,
+                    encoding="utf-8",
                 )
+                if pid.returncode:
+                    print(
+                        f"Unable to delete branch {b!r} in repository {n!r}: {pid.stdout}",
+                        file=sys.stderr,
+                    )
 
     shutil.rmtree(r.workset.resolve())
