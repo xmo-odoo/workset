@@ -75,7 +75,6 @@ def create(r: CreateRequest) -> None:
     else:
         print("No MIN_PY_VERSION found, defaulting to 3.12")
         pyver = "3.12"
-    (r.dest / ".python-version").write_text(pyver)
 
     dev = ["pytest", "pytest-timeout", "pytest-sugar", "pytest-xdist"]
     if "runbot" in r.repos:
@@ -94,8 +93,10 @@ build-backend = "odoo_deps_backend"
 
 [project]
 name = "odoo"
+version = "0.1.0"
 requires-python = ">= {pyver}"
-dynamic = ["dependencies", "version"]
+dynamic = ["dependencies"]
+# dynamic = ["dependencies", "requires-python"]
 
 [dependency-groups]
 dev = {dev!r}
